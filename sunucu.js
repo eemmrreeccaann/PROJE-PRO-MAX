@@ -1,47 +1,42 @@
-const express = require('express');
-const path = require('path');
-const fetch = require('node-fetch');
+const TelegramBot = require('node-telegram-bot-api');
 
-const app = express();
-const port = process.env.PORT || 3001;
+// Vercel Gizli Kasasından Verileri Çek
+const token = process.env.BOT_TOKEN;
 
-// GÜNCEL TOKEN BURADA
-const BOT_TOKEN = '8629686439:AAGyQzBfMENfEwIfWV9TyO7vPbfXo2IkPKw';
-const CHAT_ID = '6760722119';
-
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'build')));
-
-const startBot = async () => {
-  let lastUpdateId = 0;
-  setInterval(async () => {
-    try {
-      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}`);
-      const data = await response.json();
-      if (data.result && data.result.length > 0) {
-        for (const update of data.result) {
-          lastUpdateId = update.update_id;
-          const chatId = update.message.chat.id;
-          await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: chatId,
-              text: `✅ PRO-MAX Sistemi Aktif!\n\nEşleştirme Kodunuz: ${chatId}`,
-            }),
-          });
-        }
-      }
-    } catch (err) {}
-  }, 3000);
-};
-
-startBot();
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+// Botu Daha Kararlı Bir Ayarla Başlat
+const bot = new TelegramBot(token, { 
+    polling: {
+        interval: 300,
+        autoStart: true,
+        params: { timeout: 10 }
+    } 
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+console.log("🚀 Sunucu başlatıldı, bot sinyal bekliyor...");
+
+// Birisi mesaj attığında çalışacak ana motor
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const isim = msg.from.first_name || "Değerli Kullanıcı";
+
+    try {
+        // Kullanıcıya şık bir karşılama ve kod gönder
+        const cevap = `Merhaba ${isim}! 👋\n\n✅ **PRO-MAX Sistemi Aktif Edildi**\n\n🔑 Eşleştirme Kodunuz: \`6760722119\`\n\n⚠️ Bu kodu sisteme girerek oturumunuzu başlatabilirsiniz.`;
+        
+        await bot.sendMessage(chatId, cevap, { parse_mode: 'Markdown' });
+        console.log(`✅ Kod gönderildi: ${isim} (${chatId})`);
+        
+    } catch (error) {
+        console.error("❌ Mesaj gönderme hatası:", error.message);
+    }
+});
+
+// Arka planda bir hata olursa sunucuyu çökertme, hatayı yazdır
+bot.on('polling_error', (error) => {
+    // Sadece çok kritik hataları logla (Gereksiz kalabalığı önler)
+    if (error.code !== 'EFATAL') {
+        console.log("Bağlantı tazelemeye çalışılıyor...");
+    } else {
+        console.error("Kritik Bot Hatası:", error);
+    }
 });
