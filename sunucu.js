@@ -3,27 +3,30 @@ const express = require('express');
 const app = express();
 
 const token = process.env.BOT_TOKEN;
-// Polling'i kapatıyoruz çünkü Vercel'de Webhook veya Express daha sağlıklı çalışır
-const bot = new TelegramBot(token, { polling: true });
 
-app.use(express.json());
+// Polling ayarlarını Vercel'in uyku moduna göre optimize ettik
+const bot = new TelegramBot(token, { 
+    polling: {
+        autoStart: true,
+        interval: 100, // Daha sık kontrol etmesi için
+        params: { timeout: 10 }
+    } 
+});
 
-// Tarayıcıdan siteye girince "Sistem Aktif" yazacak (Uyandırma servisi)
 app.get('/', (req, res) => {
-    res.send('PRO-MAX Sunucusu 7/24 Aktif!');
+    res.send('PRO-MAX Sistemi Arka Planda Aktif!');
 });
 
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     try {
-        await bot.sendMessage(chatId, "✅ PRO-MAX Sistemi Aktif! \n\nEşleştirme Kodunuz: `6760722119` \n\nŞu an her şey yolunda!");
+        await bot.sendMessage(chatId, "✅ **Sistem Yanıt Veriyor!**\n\n🔑 Eşleştirme Kodunuz: `6760722119` \n\nŞu an her şey tıkırında çalışıyor.");
     } catch (e) {
-        console.log("Hata:", e.message);
+        console.log("Mesaj gönderilemedi:", e.message);
     }
 });
 
-// Vercel'in istediği port ayarı
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Sunucu ${PORT} portunda hazır.`);
+    console.log(`Sunucu ${PORT} portunda uyandırıldı.`);
 });
