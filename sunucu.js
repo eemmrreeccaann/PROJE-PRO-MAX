@@ -3,30 +3,29 @@ const express = require('express');
 const app = express();
 
 const token = process.env.BOT_TOKEN;
+// Polling: false yapıyoruz çünkü artık Webhook kullanacağız
+const bot = new TelegramBot(token);
 
-// Polling ayarlarını Vercel'in uyku moduna göre optimize ettik
-const bot = new TelegramBot(token, { 
-    polling: {
-        autoStart: true,
-        interval: 100, // Daha sık kontrol etmesi için
-        params: { timeout: 10 }
-    } 
+app.use(express.json());
+
+// Telegram'ın mesajları göndereceği yol
+app.post(`/bot${token}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
 });
 
+// Bot mesaj geldiğinde ne yapacak?
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(chatId, "✅ **BAĞLANTI BAŞARILI!** \n\n🔑 Eşleştirme Kodunuz: `6760722119` \n\nSistem artık Webhook ile 7/24 aktif.");
+});
+
+// Ana sayfa kontrolü
 app.get('/', (req, res) => {
-    res.send('PRO-MAX Sistemi Arka Planda Aktif!');
-});
-
-bot.on('message', async (msg) => {
-    const chatId = msg.chat.id;
-    try {
-        await bot.sendMessage(chatId, "✅ **Sistem Yanıt Veriyor!**\n\n🔑 Eşleştirme Kodunuz: `6760722119` \n\nŞu an her şey tıkırında çalışıyor.");
-    } catch (e) {
-        console.log("Mesaj gönderilemedi:", e.message);
-    }
+  res.send('Bot Webhook Modunda Çalışıyor...');
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Sunucu ${PORT} portunda uyandırıldı.`);
+  console.log(`Sunucu ${PORT} üzerinde uyanık.`);
 });
